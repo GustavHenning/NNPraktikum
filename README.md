@@ -1,3 +1,16 @@
+# United Nation's fork
+This is the forked repo of the NNPraktikum of the group United Nations.
+Add your name to the authors.txt in case we need it.
+
+## Commit policy
+In order to make things super easy: Don't work on the master branch.
+Either:
+  1) Work on a task specific branch(e.g. perceptronTraining)
+  2) Work on a branch with your name/username
+
+again:
+# Don't work on the master branch.
+
 # NNPraktikum
 The coding framework for KIT Neural Network Praktikum
 
