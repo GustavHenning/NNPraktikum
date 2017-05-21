@@ -34,7 +34,7 @@ class Perceptron(Classifier):
     testSet : list
     weight : list
     """
-    def __init__(self, train, valid, test, 
+    def __init__(self, train, valid, test,
                                     learningRate=0.01, epochs=50):
 
         self.learningRate = learningRate
@@ -56,8 +56,18 @@ class Perceptron(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
-        
+
         # Write your code to train the perceptron here
+        for e in range(0, self.epochs):
+            errors = []
+            for t in self.trainingSet.input:
+                if self.classify(t):
+                    errors.append(1)
+                else:
+                    errors.append(0)
+                #errors.append(1 if self.classify(t) else 0)
+            err = [(error - label) for error, label in zip(errors, self.trainingSet.label)]
+            self.updateWeights(self.trainingSet.input, err)
         pass
 
     def classify(self, testInstance):
@@ -73,6 +83,8 @@ class Perceptron(Classifier):
             True if the testInstance is recognized as a 7, False otherwise.
         """
         # Write your code to do the classification on an input image
+        print(np.dot(self.weight, testInstance))
+        return np.dot(self.weight, testInstance) >= 0
         pass
 
     def evaluate(self, test=None):
@@ -96,8 +108,10 @@ class Perceptron(Classifier):
 
     def updateWeights(self, input, error):
         # Write your code to update the weights of the perceptron here
+        ie = [(i * e) for i, e in zip(input, error)]
+        self.weight = [(w + self.learningRate * E) for w, E in zip(self.weight, ie)]
         pass
-         
+
     def fire(self, input):
         """Fire the output of the perceptron corresponding to the input """
         return Activation.sign(np.dot(np.array(input), self.weight))
