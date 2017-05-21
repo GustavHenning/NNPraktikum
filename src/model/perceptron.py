@@ -58,7 +58,18 @@ class Perceptron(Classifier):
         """
         
         # Write your code to train the perceptron here
-        pass
+        for e in range(0,self.epochs):
+			errors = []
+			for data in self.trainningSet.input:
+				output=self.classify(data)
+				if output:
+					errors.append(1)
+				else:
+					errors.append(0)
+				another_errors = [(error-label)for error, label in zip (errors, self.trainingSet.label)]
+				sum_error = sum(another_errors)
+				self.updateWeights(self.training.input, sum_error)
+		pass
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -73,7 +84,7 @@ class Perceptron(Classifier):
             True if the testInstance is recognized as a 7, False otherwise.
         """
         # Write your code to do the classification on an input image
-        pass
+		return np.dot(testInstance, self.Weights)>=0
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
@@ -96,6 +107,7 @@ class Perceptron(Classifier):
 
     def updateWeights(self, input, error):
         # Write your code to update the weights of the perceptron here
+		self.weight = [ (w + self.learningRate * error)for w in self.weight]
         pass
          
     def fire(self, input):
