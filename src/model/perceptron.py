@@ -105,7 +105,6 @@ class Perceptron(Classifier):
         return list(map(self.classify, test))
 
     def updateWeights(self, input, error):
-        # Ask Dajana
         for i in range(0, len(self.weight)):
             sum = 0
             for d in range(0, len(input)):
