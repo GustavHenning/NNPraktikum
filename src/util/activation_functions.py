@@ -13,7 +13,7 @@ class Activation:
     """
     Containing various activation functions and their derivatives
     """
-
+    # TODO
     @staticmethod
     def sign(netOutput, threshold=0):
         return netOutput >= threshold

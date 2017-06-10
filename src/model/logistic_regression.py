@@ -7,6 +7,7 @@ import numpy as np
 
 from util.activation_functions import Activation
 from model.classifier import Classifier
+from util.loss_functions import DifferentError
 from util.loss_functions import AbsoluteError
 from util.loss_functions import BinaryCrossEntropyError
 from scipy.misc import derivative
@@ -59,30 +60,39 @@ class LogisticRegression(Classifier):
             Print logging messages with validation accuracy if verbose is True.
         """
         epoch = 0
+        DE = DifferentError()
         AE = AbsoluteError()
         BCE = BinaryCrossEntropyError()
+
+        # use loss to choose error function
+        loss = DE
         # See
         # https://ilias.studium.kit.edu/goto.php?target=file_701288_download&client_id=produktiv
         # for batch version slide - we think it's wrong somehow
         while(epoch < self.epochs):
-            grad = np.zeros(len(self.weight))
-            # fire on all the inputs
-            output = [self.fire(data) for data in self.trainingSet.input]
-            # calculate the error over all outputs
-            # We have to derivate this function somehow
-            error = BCE.calculateError(self.trainingSet.label, output)
+            gradient = np.zeros(len(self.weight))
+            numE = 0
+            for input, target in zip(self.trainingSet.input, self.trainingSet.label):
+                output = self.fire(input);
+                error = loss.calculateError(target, output)
+
+                #gradient += - (output - target)
+                if isinstance(loss, DifferentError):
+                    gradient += - error * input
+                elif isinstance(loss, AbsoluteError):
+                    gradient += - error * input # TODO change
+                elif isinstance(loss, BinaryCrossEntropyError):
+                    gradient += - error * input # TODO change
+                else:
+                    gradient += - error * input
+
+                numE += abs(error)
+
+            self.updateWeights(gradient)
 
             if verbose:
-                logging.info("Epoch: %i; Error: %i", epoch, error)
+                logging.info("Epoch: %i; Error: %i", epoch, numE)
 
-
-            for data in self.trainingSet.input:
-                grad = [(g + error * x) for g, x in zip(grad, data)]
-
-            if verbose:
-                logging.info("Epoch: %i; Grad: %i", epoch, sum(grad))
-
-            self.updateWeights(grad)
             epoch = epoch + 1
 
         pass
@@ -99,6 +109,7 @@ class LogisticRegression(Classifier):
         bool :
             True if the testInstance is recognized as a 7, False otherwise.
         """
+        return self.fire(testInstance) > 0.5
         pass
 
     def evaluate(self, test=None):
@@ -122,7 +133,8 @@ class LogisticRegression(Classifier):
 
         # maybe w - self.learningRate? * g
     def updateWeights(self, grad):
-        self.weight = [(w + self.learningRate * g) for w, g in zip(self.weight, grad)]
+        #self.weight = [(w - self.learningRate * g) for w, g in zip(self.weight, grad)]
+        self.weight += - self.learningRate * grad
         pass
 
     def fire(self, input):
