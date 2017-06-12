@@ -10,6 +10,10 @@ from model.classifier import Classifier
 from util.loss_functions import DifferentError
 from util.loss_functions import AbsoluteError
 from util.loss_functions import BinaryCrossEntropyError
+from util.loss_functions import CrossEntropyError
+from util.loss_functions import SumSquaredError
+from util.loss_functions import MeanSquaredError
+
 from scipy.misc import derivative
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
@@ -63,9 +67,14 @@ class LogisticRegression(Classifier):
         DE = DifferentError()
         AE = AbsoluteError()
         BCE = BinaryCrossEntropyError()
+        CE = CrossEntropyError()
+        SSE = SumSquaredError()
+        MSE = MeanSquaredError()
 
+        # ----------------------------------
         # use loss to choose error function
-        loss = DE
+        # ----------------------------------
+        loss = BCE
         # See
         # https://ilias.studium.kit.edu/goto.php?target=file_701288_download&client_id=produktiv
         # for batch version slide - we think it's wrong somehow
@@ -82,8 +91,15 @@ class LogisticRegression(Classifier):
                 elif isinstance(loss, AbsoluteError):
                     gradient += - error * input # TODO change
                 elif isinstance(loss, BinaryCrossEntropyError):
-                    gradient = gradient + np.dot((self.fire(data) - label), data)
+                    gradient += np.dot((output - target), input)
+                elif isinstance(loss, CrossEntropyError):
+                    gradient += - error * input # TODO change
+                elif isinstance(loss, SumSquaredError):
+                    gradient += - error * input # TODO change
+                elif isinstance(loss, MeanSquaredError):
+                    gradient += - error * input # TODO change
                 else:
+                    logging.warn("No loss function chosen. Defaulting to DifferentError gradient descent.")
                     gradient += - error * input
 
                 numE += abs(error)
