@@ -82,10 +82,7 @@ class LogisticRegression(Classifier):
                 output = self.fire(input);
                 error = 0
                 # The error functions don't seem to improve the gradient but yield good results
-                if isinstance(loss, MeanSquaredError) or isinstance(loss, SumSquaredError):
-                    error = (target - output) * Activation.sigmoidPrime(output)
-                else:
-                    error = loss.calculateError(target, output)
+                error = loss.calculateError(target, output)
 
                 gradient -= error * input
                 sumE += abs(error)
