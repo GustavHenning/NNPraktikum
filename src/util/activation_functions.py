@@ -25,7 +25,8 @@ class Activation:
     @staticmethod
     def sigmoidPrime(netOutput):
         # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
-        return Activation.sigmoid(netOutput) * (1 - Acitvation.sigmoid(netOutput))
+        sig = Activation.sigmoid(netOutput)
+        return sig * (1 - sig)
 
 
     @staticmethod
@@ -36,7 +37,8 @@ class Activation:
     @staticmethod
     def tanhPrime(netOutput):
         # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
-        return 1 - Activation.tanh(netoutput)**2
+        tan = Acitvation.tanh(netOutput)
+        return 1 - tan**2
 
     @staticmethod
     def rectified(netOutput):

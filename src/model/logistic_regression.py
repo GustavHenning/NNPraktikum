@@ -63,52 +63,40 @@ class LogisticRegression(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
-        epoch = 0
-        DE = DifferentError()
-        AE = AbsoluteError()
-        BCE = BinaryCrossEntropyError()
-        CE = CrossEntropyError()
-        SSE = SumSquaredError()
-        MSE = MeanSquaredError()
-
+        DE = DifferentError() # Working
+        AE = AbsoluteError() # nope
+        BCE = BinaryCrossEntropyError() # Working(?)
+        CE = CrossEntropyError() # Not implemented
+        SSE = SumSquaredError() # Working(?)
+        MSE = MeanSquaredError() # Working(?)
         # ----------------------------------
         # use loss to choose error function
         # ----------------------------------
-        loss = BCE
-        # See
-        # https://ilias.studium.kit.edu/goto.php?target=file_701288_download&client_id=produktiv
-        # for batch version slide - we think it's wrong somehow
-        while(epoch < self.epochs):
+        loss = SSE
+        GRADIENT_LENGTH_THRESHOLD = 5
+        epoch = 1
+        while(epoch <= self.epochs):
             gradient = np.zeros(len(self.weight))
             sumE = 0
             for input, target in zip(self.trainingSet.input, self.trainingSet.label):
                 output = self.fire(input);
-                error = loss.calculateError(target, output)
-
-                #gradient += - (output - target)
-                if isinstance(loss, DifferentError):
-                    gradient += - error * input
-                elif isinstance(loss, AbsoluteError):
-                    gradient += - error * input # TODO change
-                elif isinstance(loss, BinaryCrossEntropyError):
-                    gradient += np.dot(error, input)
-                elif isinstance(loss, CrossEntropyError):
-                    gradient += - error * input # TODO change
-                elif isinstance(loss, SumSquaredError):
-                    gradient += - error * input # TODO change
-                elif isinstance(loss, MeanSquaredError):
-                    gradient += - error * input # TODO change
+                error = 0
+                # The error functions don't seem to improve the gradient but yield good results
+                if isinstance(loss, MeanSquaredError) or isinstance(loss, SumSquaredError):
+                    error = (target - output) * Activation.sigmoidPrime(output)
                 else:
-                    logging.warn("No loss function chosen. Defaulting to DifferentError gradient descent.")
-                    gradient += - error * input
+                    error = loss.calculateError(target, output)
 
+                gradient -= error * input
                 sumE += abs(error)
 
             self.updateWeights(gradient)
 
+            lenGrad = np.sqrt(np.sum(np.square(gradient)))
             if verbose:
-                logging.info("Epoch: %i; sumError: %i, sumGrad: %i", epoch, sumE, np.sum(gradient))
-
+                logging.info("Epoch: %i; Error Sum: %i, Grad Length: %i", epoch, sumE, lenGrad)
+            if sumE == 0 and lenGrad < GRADIENT_LENGTH_THRESHOLD:
+                break
             epoch = epoch + 1
 
         pass
