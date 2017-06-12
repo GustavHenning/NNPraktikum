@@ -6,7 +6,6 @@ Activation functions which can be used within neurons.
 
 from numpy import exp
 from numpy import divide
-from scipy.misc import derivative
 
 
 class Activation:
@@ -25,20 +24,19 @@ class Activation:
 
     @staticmethod
     def sigmoidPrime(netOutput):
-        # Here you have to code the derivative of sigmoid function
-        # https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.misc.derivative.html
-        return derivative(Activation.sigmoid, netOutput)
+        # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
+        return Activation.sigmoid(netOutput) * (1 - Acitvation.sigmoid(netOutput))
 
 
     @staticmethod
     def tanh(netOutput):
-        # Here you have to code the tanh function
-        pass
+        # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
+        return (2 / (1 + exp(-2 * netOutput))) - 1
 
     @staticmethod
     def tanhPrime(netOutput):
-        # Here you have to code the derivative of tanh function
-        pass
+        # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
+        return 1 - Activation.tanh(netoutput)**2
 
     @staticmethod
     def rectified(netOutput):
@@ -46,8 +44,8 @@ class Activation:
 
     @staticmethod
     def rectifiedPrime(netOutput):
-        # Here you have to code the derivative of rectified linear function
-        pass
+        # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
+        return  0 if netOutput < 0 else 1
 
     @staticmethod
     def identity(netOutput):
@@ -55,8 +53,8 @@ class Activation:
 
     @staticmethod
     def identityPrime(netOutput):
-        # Here you have to code the derivative of identity function
-        pass
+        # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
+        return 1
 
     @staticmethod
     def softmax(netOutput):
