@@ -80,7 +80,7 @@ class LogisticRegression(Classifier):
         # for batch version slide - we think it's wrong somehow
         while(epoch < self.epochs):
             gradient = np.zeros(len(self.weight))
-            numE = 0
+            sumE = 0
             for input, target in zip(self.trainingSet.input, self.trainingSet.label):
                 output = self.fire(input);
                 error = loss.calculateError(target, output)
@@ -91,7 +91,7 @@ class LogisticRegression(Classifier):
                 elif isinstance(loss, AbsoluteError):
                     gradient += - error * input # TODO change
                 elif isinstance(loss, BinaryCrossEntropyError):
-                    gradient += np.dot((output - target), input)
+                    gradient += np.dot(error, input)
                 elif isinstance(loss, CrossEntropyError):
                     gradient += - error * input # TODO change
                 elif isinstance(loss, SumSquaredError):
@@ -102,12 +102,12 @@ class LogisticRegression(Classifier):
                     logging.warn("No loss function chosen. Defaulting to DifferentError gradient descent.")
                     gradient += - error * input
 
-                numE += abs(error)
+                sumE += abs(error)
 
             self.updateWeights(gradient)
 
             if verbose:
-                logging.info("Epoch: %i; Error: %i", epoch, numE)
+                logging.info("Epoch: %i; sumError: %i, sumGrad: %i", epoch, sumE, np.sum(gradient))
 
             epoch = epoch + 1
 
