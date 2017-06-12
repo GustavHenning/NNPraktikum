@@ -72,27 +72,34 @@ class LogisticRegression(Classifier):
         # ----------------------------------
         # use loss to choose error function
         # ----------------------------------
-        loss = SSE
+        loss = DE
         GRADIENT_LENGTH_THRESHOLD = 5
         epoch = 1
         while(epoch <= self.epochs):
             gradient = np.zeros(len(self.weight))
             sumE = 0
-            for input, target in zip(self.trainingSet.input, self.trainingSet.label):
-                output = self.fire(input);
-                error = 0
-                # The error functions don't seem to improve the gradient but yield good results
-                error = loss.calculateError(target, output)
 
-                gradient -= error * input
-                sumE += abs(error)
+            input = self.trainingSet.input
+            output = [(self.fire(inp)) for inp in input]
+            target = self.trainingSet.label
+
+            # here we pass two arrays of all targets and outputs
+            # and receive all errors of all 3000 images.
+            error = loss.calculateError(np.array(target), np.array(output))
+
+            for i in range(error.size-1):
+                #print(error[i])
+                gradient -= np.multiply(error[i], input[i])
+            sumE += abs(sum(error))
 
             self.updateWeights(gradient)
 
             lenGrad = np.sqrt(np.sum(np.square(gradient)))
+
             if verbose:
-                logging.info("Epoch: %i; Error Sum: %i, Grad Length: %i", epoch, sumE, lenGrad)
-            if sumE == 0 and lenGrad < GRADIENT_LENGTH_THRESHOLD:
+                logging.info("Epoch: %i; Error: %f, Grad Length: %f", epoch, sumE, lenGrad)
+            #print(str(sumE) + " " + str(lenGrad))
+            if sumE <= 0.0 and lenGrad < GRADIENT_LENGTH_THRESHOLD:
                 break
             epoch = epoch + 1
 
