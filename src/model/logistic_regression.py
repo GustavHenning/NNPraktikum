@@ -82,7 +82,7 @@ class LogisticRegression(Classifier):
                 elif isinstance(loss, AbsoluteError):
                     gradient += - error * input # TODO change
                 elif isinstance(loss, BinaryCrossEntropyError):
-                    gradient += - error * input # TODO change
+                    gradient = gradient + np.dot((self.fire(data) - label), data)
                 else:
                     gradient += - error * input
 
