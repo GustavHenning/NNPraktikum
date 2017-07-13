@@ -7,6 +7,8 @@ import numpy as np
 
 from util.activation_functions import Activation
 from model.classifier import Classifier
+from model.logistic_layer import LogisticLayer
+
 from util.loss_functions import DifferentError
 from util.loss_functions import AbsoluteError
 from util.loss_functions import BinaryCrossEntropyError
@@ -15,6 +17,9 @@ from util.loss_functions import SumSquaredError
 from util.loss_functions import MeanSquaredError
 
 from scipy.misc import derivative
+
+import pdb
+import matplotlib.pyplot as plt
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
@@ -43,7 +48,7 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, learningRate=0.01, epochs=50):
+    def __init__(self, train, valid, test, learningRate=0.01, epochs=50, layerConf=[2,1]):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -51,6 +56,20 @@ class LogisticRegression(Classifier):
         self.trainingSet = train
         self.validationSet = valid
         self.testSet = test
+
+        self.layers = []
+        # iteratve over layerConf and instansiate the layers
+        # layerConf contains the size of the output of each layer
+        for ind, val in enumerate(layerConf):
+            # For the first layer, nIn == size of input, nOut defined by layerConf
+            # Any other layer, size of input equal to that of the previous output.
+            sizeIn = layerConf[ind - 1] if ind != 0 else self.trainingSet.input.shape[1]
+            sizeOut = val
+            self.layers.append(LogisticLayer(sizeIn, sizeOut))
+            logging.info("Layer %i, size [%i → %i]", ind, sizeIn, sizeOut)
+
+        # set the last layer to be a classifier
+        self.layers[-1].isClassifierLayer = True
 
         # Initialize the weight vector with small values
         self.weight = 0.01*np.random.randn(self.trainingSet.input.shape[1])
@@ -63,6 +82,7 @@ class LogisticRegression(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
+
         DE = DifferentError() # Working
         AE = AbsoluteError() # nope
         BCE = BinaryCrossEntropyError() # Working(?)
@@ -73,40 +93,72 @@ class LogisticRegression(Classifier):
         # use loss to choose error function
         # ----------------------------------
         loss = DE
-        GRADIENT_LENGTH_THRESHOLD = 5
+        loss.errorString()
+        # ----------------------------------
+        if verbose:
+            logging.info("LogRes using [%s] with %i epochs", loss.errorString, self.epochs)
+        learned = False
         epoch = 1
+        trainingCost = np.zeros(self.epochs)
+        while not learned:
 
-        while(epoch <= self.epochs):
-            gradient = np.zeros(len(self.weight))
-            sumE = 0
+            totalError = 0
+            for input, label in zip(self.trainingSet.input, self.trainingSet.label):
 
-            input = self.trainingSet.input
-            output = [(self.fire(inp)) for inp in input]
-            target = self.trainingSet.label
+                ##
+                ## Feed forward step - let the layers evaluate input in a cascading manner
+                ##
+                ## TODO implement the forward step function in layer
+                ##
+                output = input
+                for layer in self.layers:
+                    output = layer.forward(output)
 
-            # here we pass two arrays of all targets and outputs
-            # and receive all errors of all 3000 images.
-            error = loss.calculateError(np.array(target), np.array(output))
+                totalError += loss.calculateError(label, output)
 
-            # use the errors to calculate the gradient
-            for i in range(error.size-1):
-                #print(error[i])
-                gradient -= np.multiply(error[i], input[i])
-            sumE += abs(sum(error))
+                ##
+                ## Backpropagation step - From back to front, calculate nextDerivates
+                ## and pass the weights to the next layer
+                ##
+                ## TODO implement computeDerivative for both cases in layer
+                ##
+                nextDerivatives = np.array([])
+                for ind, layer in enumerate(reversed(self.layers)):
+                    if ind == 0:
+                        # The classifier layer. Passes the cost prime as argument
+                        # TODO Probably needs a specific implementation for each loss function
+                        # probably also the prime of this function.
+                        nextDerivatives = layer.computeDerivative(loss.calculateError(output, label), None)
+                    else:
+                        # normal layer: propagate backwards with the derivates and the weights
+                        # The minus sign indicates going from right to left index-wise.
+                        nextDerivatives = layer.computeDerivative(nextDerivatives, self.layers[-ind].weights)
 
-            # with the gradient update the weights
-            self.updateWeights(gradient)
 
-            # use the length of the gradient as an exit condition
-            lenGrad = np.sqrt(np.sum(np.square(gradient)))
+                ##
+                ## Update step
+                ##
+                ## TODO implement updateWeights in layer
+                ##
+                for ind,layer in enumerate(self.layers):
+                    layer.updateWeights(self.learningRate)
+
+            trainingCost[epoch-1] = totalError
 
             if verbose:
-                logging.info("Epoch: %i; Error: %f, Grad Length: %f", epoch, sumE, lenGrad)
-            #print(str(sumE) + " " + str(lenGrad))
-            if sumE <= 0.0 and lenGrad < GRADIENT_LENGTH_THRESHOLD:
-                break
+                logging.info("Epoch: %i; Error: %f", epoch, totalError)
+
+            if epoch >= self.epochs:
+                learned = True
             epoch = epoch + 1
 
+        # 'python-tk package not found?' → apt-get install python-tk
+        plt.plot(trainingCost, '-b',  label='Training Set')
+        plt.ylabel('Cost')
+        plt.xlabel('Epoch')
+        plt.legend(loc='upper right')
+        plt.grid(True)
+        plt.show()
         pass
 
     def classify(self, testInstance):
@@ -121,7 +173,11 @@ class LogisticRegression(Classifier):
         bool :
             True if the testInstance is recognized as a 7, False otherwise.
         """
-        return self.fire(testInstance) > 0.5
+        temp = testInstance
+        for layer in self.layers:
+            temp = layer.forward(temp)
+        # the last output layer has one neuron, return its value
+        return temp[0][0] > 0.5
         pass
 
     def evaluate(self, test=None):

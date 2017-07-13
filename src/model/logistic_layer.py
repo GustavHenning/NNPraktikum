@@ -4,10 +4,10 @@ import time
 import numpy as np
 
 from util.activation_functions import Activation
-from model.layer import Layer
+#from model.layer import Layer
 
 
-class LogisticLayer(Layer):
+class LogisticLayer():
     """
     A layer of perceptrons acting as the output layer
 
@@ -84,7 +84,8 @@ class LogisticLayer(Layer):
         ndarray :
             a numpy array (1,nOut) containing the output of the layer
         """
-        pass
+        ## TODO Implement this function
+        return self.output
 
     def computeDerivative(self, nextDerivatives, nextWeights):
         """
@@ -93,7 +94,8 @@ class LogisticLayer(Layer):
         Parameters
         ----------
         nextDerivatives: ndarray
-            a numpy array containing the derivatives from next layer
+            a numpy array containing the derivatives from next layer,
+            alternatively the prime of the cost if this is a classification layer
         nextWeights : ndarray
             a numpy array containing the weights from next layer
 
@@ -102,10 +104,16 @@ class LogisticLayer(Layer):
         ndarray :
             a numpy array containing the partial derivatives on this layer
         """
+        if self.isClassifierLayer:
+            # here nextDerivates is the prime cost function
+            return nextDerivatives # self.activationPrime(self.output) *
+        else:
+            return nextDerivatives ## TODO
         pass
 
-    def updateWeights(self):
+    def updateWeights(self, learningRate):
         """
         Update the weights of the layer
         """
+        ## TODO implement this function
         pass
