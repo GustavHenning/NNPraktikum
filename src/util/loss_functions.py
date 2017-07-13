@@ -87,9 +87,9 @@ class BinaryCrossEntropyError(Error):
         self.errorString = 'bce'
                                     # output should be sigmoid(w * x)
     def calculateError(self, target, output):
-        return -(output - target)
-        #return (-1 / output.size) * np.sum(target * np.log(output) + (1 - target) * np.log(1 - output))
-
+        #return -(output - target)
+        return -1.0 * np.sum(target * np.log(output) + (1 - target) * np.log(1 - output))
+        # (-1.0 / output.size)
 class CrossEntropyError(Error):
     """
     The Loss calculated by the more general Cross Entropy between two

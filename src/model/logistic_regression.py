@@ -75,6 +75,7 @@ class LogisticRegression(Classifier):
         loss = DE
         GRADIENT_LENGTH_THRESHOLD = 5
         epoch = 1
+
         while(epoch <= self.epochs):
             gradient = np.zeros(len(self.weight))
             sumE = 0
@@ -87,13 +88,16 @@ class LogisticRegression(Classifier):
             # and receive all errors of all 3000 images.
             error = loss.calculateError(np.array(target), np.array(output))
 
+            # use the errors to calculate the gradient
             for i in range(error.size-1):
                 #print(error[i])
                 gradient -= np.multiply(error[i], input[i])
             sumE += abs(sum(error))
 
+            # with the gradient update the weights
             self.updateWeights(gradient)
 
+            # use the length of the gradient as an exit condition
             lenGrad = np.sqrt(np.sum(np.square(gradient)))
 
             if verbose:
