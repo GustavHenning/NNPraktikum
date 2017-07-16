@@ -41,12 +41,16 @@ class LogisticLayer():
     """
 
     def __init__(self, nIn, nOut, weights=None,
-                 activation='softmax', isClassifierLayer=True):
+                 activation='sigmoid', isClassifierLayer=True):
+        ##
+        ## TODO it's actually supposed to be softmax activation !!! TODO
+        ##
 
         # Get activation function from string
         # Notice the functional programming paradigms of Python + Numpy
         self.activationString = activation
         self.activation = Activation.getActivation(self.activationString)
+        self.activationPrime = Activation.getDerivative(self.activationString)
 
         self.nIn = nIn
         self.nOut = nOut
@@ -84,18 +88,21 @@ class LogisticLayer():
         ndarray :
             a numpy array (1,nOut) containing the output of the layer
         """
-        ## TODO Implement this function
+        self.input = input
+        # [x * w] => [S] => y
+        self.output = self.activation(np.dot(self.weights, np.array(self.input)))
         return self.output
 
-    def computeDerivative(self, nextDerivatives, nextWeights):
+    def computeDerivative(self, label, nextDerivatives, nextWeights):
         """
         Compute the derivatives (back)
 
         Parameters
         ----------
+        label:
+            used by classification layers.
         nextDerivatives: ndarray
-            a numpy array containing the derivatives from next layer,
-            alternatively the prime of the cost if this is a classification layer
+            a numpy array containing the derivatives from next layer
         nextWeights : ndarray
             a numpy array containing the weights from next layer
 
@@ -105,15 +112,15 @@ class LogisticLayer():
             a numpy array containing the partial derivatives on this layer
         """
         if self.isClassifierLayer:
-            # here nextDerivates is the prime cost function
-            return nextDerivatives # self.activationPrime(self.output) *
+            self.delta = self.activationPrime(self.output) * np.array(label - self.output)
         else:
-            return nextDerivatives ## TODO
-        pass
+            print("Unimplemented for multiple layers")
+            ## TODO derivate chaining rule
+        #    self.delta = self.activationPrime(self.output) * ? ## TODO
+        return self.delta
 
-    def updateWeights(self, learningRate):
+    def updateWeights(self, learningRate=0.01):
         """
         Update the weights of the layer
         """
-        ## TODO implement this function
-        pass
+        self.weights += learningRate * self.delta * self.input

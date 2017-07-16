@@ -47,7 +47,7 @@ class DifferentError(Error):
 
     def calculateError(self, target, output):
         # It is the numbers of differences between target and output
-        return np.subtract(target, output)
+        return target - output
 
 
 class MeanSquaredError(Error):
