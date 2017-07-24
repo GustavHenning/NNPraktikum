@@ -48,7 +48,7 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, learningRate=0.01, epochs=30, layerConf=[1]):
+    def __init__(self, train, valid, test, learningRate=0.01, epochs=30, layerConf=[10,1]):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -66,7 +66,7 @@ class LogisticRegression(Classifier):
             # Any other layer, size of input equal to that of the previous output.
             sizeIn = layerConf[ind - 1] if ind != 0 else self.trainingSet.input.shape[1]
             sizeOut = val
-            self.layers.append(LogisticLayer(sizeIn, sizeOut))
+            self.layers.append(LogisticLayer(sizeIn, sizeOut, ind == 0))
             logging.info("Layer %i, size [%i → %i]", ind, sizeIn, sizeOut)
 
         # set the last layer to be a classifier

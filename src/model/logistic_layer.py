@@ -40,8 +40,8 @@ class LogisticLayer():
         shape of the layer, is also shape of the weight matrix
     """
 
-    def __init__(self, nIn, nOut, weights=None,
-                 activation='sigmoid', isClassifierLayer=True):
+    def __init__(self, nIn, nOut, isInputLayer=False,
+                 activation='sigmoid', isClassifierLayer=False):
         ##
         ## TODO it's actually supposed to be softmax activation !!! TODO
         ##
@@ -62,11 +62,11 @@ class LogisticLayer():
         self.delta = np.zeros((nOut, 1))
 
         # You can have better initialization here
-        if weights is None:
-            rns = np.random.RandomState(int(time.time()))
-            self.weights = rns.uniform(size=(nOut, nIn + 1))-0.5
-        else:
-            self.weights = weights
+
+        rns = np.random.RandomState(int(time.time()))
+        self.weights = rns.uniform(size=(nOut, nIn + (1 if isInputLayer else 0)))-0.5
+        #print(str(self.weights.shape))
+
 
         self.isClassifierLayer = isClassifierLayer
 
@@ -90,6 +90,8 @@ class LogisticLayer():
         """
         self.input = input
         # [x * w] => [S] => y
+        #print("x: " + str(self.input.shape) + " * w:" + str(self.weights.shape) + " = ")
+        #print(str(np.dot(self.weights, np.array(self.input)).shape))
         self.output = self.activation(np.dot(self.weights, np.array(self.input)))
         return self.output
 
@@ -112,15 +114,22 @@ class LogisticLayer():
             a numpy array containing the partial derivatives on this layer
         """
         if self.isClassifierLayer:
-            self.delta = self.activationPrime(self.output) * np.array(label - self.output)
+        #    print("y^: " + str(self.activationPrime(self.output).shape) +
+        #    " *  [l: " + str(np.array(label)) +
+        #    " - y: " + str(self.output.shape) + " ]")
+        #    print(" = " + str(np.multiply(self.activationPrime(self.output), np.array(label - self.output)).shape))
+            self.delta = np.multiply(self.activationPrime(self.output), np.array(label - self.output))
         else:
-            print("Unimplemented for multiple layers")
-            ## TODO derivate chaining rule
-        #    self.delta = self.activationPrime(self.output) * ? ## TODO
+        #    print("Unimplemented for multiple layers")
+        #    print("nD: " + str(nextDerivatives.shape) +
+        #    "nW: " + str(nextWeights.shape) +
+        #    " * y^: " + str(self.activationPrime(self.output).shape))
+            self.delta = np.dot(nextDerivatives, nextWeights) * self.activationPrime(self.output)
         return self.delta
 
     def updateWeights(self, learningRate=0.01):
         """
         Update the weights of the layer
         """
-        self.weights += learningRate * self.delta * self.input
+        #print("w: " + str(self.weights.shape) + " = d: " + str(self.delta.shape) + " * i: " + str(self.input.shape))
+        self.weights += learningRate * self.input * self.delta[:,np.newaxis]
