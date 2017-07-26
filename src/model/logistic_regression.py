@@ -67,7 +67,11 @@ class LogisticRegression(Classifier):
             # Any other layer, size of input equal to that of the previous output.
             sizeIn = layerConf[ind - 1] if ind != 0 else self.trainingSet.input.shape[1]
             sizeOut = val
-            actives = "sigmoid" if ind == len(layerConf) - 1 else "softmax"
+            activeStrings = ['sigmoid', 'softmax', 'tanh', #'linear'
+            ];
+            randomActive = activeStrings[np.random.randint(0, len(activeStrings))]
+            # "sigmoid"
+            actives = "sigmoid" if ind == len(layerConf) - 1 else randomActive
             # in, out, isInput, acitvationFunction, isClassifier
             #print(str(sizeIn) + " " + str(sizeOut))
             self.layers.append(LogisticLayer(sizeIn, sizeOut, ind == 0, actives))
@@ -102,7 +106,7 @@ class LogisticRegression(Classifier):
         # ----------------------------------
         # use loss to choose error function
         # ----------------------------------
-        loss = SSE
+        loss = DE
         loss.errorString()
         # ----------------------------------
         if verbose:
@@ -119,8 +123,7 @@ class LogisticRegression(Classifier):
                 ## Feed forward step - let the layers evaluate input in a cascading manner
                 ##
                 output = self.forward(input)
-
-                totalError -= loss.calculateError(label, output)
+                #totalError -= loss.calculateError(label, output)
 
                 ##
                 ## Backpropagation step - From back to front, calculate nextDerivates
@@ -130,7 +133,7 @@ class LogisticRegression(Classifier):
                     if ind == CLASSIFIER_LAYER:
                         # The classifier layer. NOTE: Probably needs specific arguments
                         # depending on the error function!
-                        layer.computeDerivative(label, loss, None, None)
+                        totalError -= layer.computeDerivative(label, loss, None, None)
                     else:
                         # hidden layer: propagate backwards with the derivates and the weights
                         # The minus sign indicates going from right to left index-wise.

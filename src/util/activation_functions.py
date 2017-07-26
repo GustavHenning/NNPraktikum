@@ -37,7 +37,7 @@ class Activation:
     @staticmethod
     def tanhPrime(netOutput):
         # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
-        tan = Acitvation.tanh(netOutput)
+        tan = Activation.tanh(netOutput)
         return 1 - tan**2
 
     @staticmethod
@@ -64,7 +64,7 @@ class Activation:
         #sumExp = sum(netExp)
         #return [(n / sum(netExp)) for n in netExp]
         #print(netOutput)
-        return divide(exp(netOutput), sum(exp(netOutput)))
+        return divide(netOutput, sum(netOutput))
 
     @staticmethod
     def softmaxPrime(netOutput):

@@ -127,7 +127,7 @@ class LogisticLayer():
         #    print("nD: " + str(nextDerivatives.shape) +
         #    "nW: " + str(nextWeights.shape) +
         #    " * y^: " + str(self.activationPrime(self.output).shape))
-            self.delta = np.dot(nextDerivatives, nextWeights) * self.activationPrime(self.output)
+            self.delta = np.multiply(np.dot(nextDerivatives, nextWeights), self.activationPrime(self.output))
         return self.delta
 
     def updateWeights(self, learningRate=0.01):
@@ -137,4 +137,12 @@ class LogisticLayer():
         #print("w: " + str(self.weights.shape) + " = d: " + str(self.delta.shape) + " * i: " + str(self.input.shape))
         #print(np.self.weights)
         #print(str(self.delta[:,np.newaxis]))
-        self.weights += learningRate * self.input * self.delta[:,np.newaxis]
+        #print(str(self.shape) + " weight sum: " + str(np.sum(learningRate * np.multiply(self.input, self.delta[:,np.newaxis]))))
+        result = np.array(np.multiply(self.delta[:,np.newaxis], sum(self.input)))
+        #print(str(self.weights.shape) + " shapes " + str(result.shape))
+        prev=self.weights
+        #print(prev)
+        self.weights = np.add(self.weights, learningRate * result)
+        #print("w sum " + str(np.sum(self.weights)))
+        #print("p sum " + str(np.sum(prev)))
+        #print(str(np.sum(prev)-np.sum(self.weights)))
