@@ -48,7 +48,7 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, learningRate=0.01, epochs=30, layerConf=[10,1]):
+    def __init__(self, train, valid, test, learningRate=0.01, epochs=10, layerConf=[2,1]):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -62,12 +62,16 @@ class LogisticRegression(Classifier):
         # layerConf contains the size of the output of each layer
         # TODO: Probably different activations for hidden/output (softmax/sigmoid)
         for ind, val in enumerate(layerConf):
+            #print(str(ind) + " " + str(val))
             # For the first layer, nIn == size of input, nOut defined by layerConf
             # Any other layer, size of input equal to that of the previous output.
             sizeIn = layerConf[ind - 1] if ind != 0 else self.trainingSet.input.shape[1]
             sizeOut = val
-            self.layers.append(LogisticLayer(sizeIn, sizeOut, ind == 0))
-            logging.info("Layer %i, size [%i → %i]", ind, sizeIn, sizeOut)
+            actives = "sigmoid" if ind == len(layerConf) - 1 else "softmax"
+            # in, out, isInput, acitvationFunction, isClassifier
+            #print(str(sizeIn) + " " + str(sizeOut))
+            self.layers.append(LogisticLayer(sizeIn, sizeOut, ind == 0, actives))
+            logging.info("Layer %i, size [%i → %i], %s", ind, sizeIn, sizeOut, actives)
 
         # set the last layer to be a classifier
         self.layers[-1].isClassifierLayer = True
@@ -98,14 +102,14 @@ class LogisticRegression(Classifier):
         # ----------------------------------
         # use loss to choose error function
         # ----------------------------------
-        loss = DE
+        loss = SSE
         loss.errorString()
         # ----------------------------------
         if verbose:
             logging.info("LogRes using [%s] with %i epochs", loss.errorString, self.epochs)
         learned = False
         epoch = 1
-        CLASSIFIER_LAYER = 0
+        CLASSIFIER_LAYER = 0 # classifier layer is the first in the reverse list
         trainingCost = np.zeros(self.epochs)
         while not learned:
             totalError = 0
@@ -122,17 +126,15 @@ class LogisticRegression(Classifier):
                 ## Backpropagation step - From back to front, calculate nextDerivates
                 ## and pass the weights to the next layer
                 ##
-                ## TODO implement computeDerivative for multiple layers (hidden)
-                ##
                 for ind, layer in enumerate(reversed(self.layers)):
                     if ind == CLASSIFIER_LAYER:
                         # The classifier layer. NOTE: Probably needs specific arguments
                         # depending on the error function!
-                        layer.computeDerivative(label, None, None)
+                        layer.computeDerivative(label, loss, None, None)
                     else:
                         # hidden layer: propagate backwards with the derivates and the weights
                         # The minus sign indicates going from right to left index-wise.
-                        layer.computeDerivative(None, self.layers[-ind].delta, self.layers[-ind].weights)
+                        layer.computeDerivative(None, None, self.layers[-ind].delta, self.layers[-ind].weights)
 
                 ##
                 ## Update step
@@ -156,7 +158,7 @@ class LogisticRegression(Classifier):
         plt.legend(loc='upper right')
         plt.grid(True)
         # enable this to show graph
-        plt.show()
+        #plt.show()
         pass
 
     def classify(self, testInstance):

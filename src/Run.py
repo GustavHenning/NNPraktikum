@@ -6,9 +6,15 @@ from model.stupid_recognizer import StupidRecognizer
 from model.perceptron import Perceptron
 from model.logistic_regression import LogisticRegression
 from report.evaluator import Evaluator
+import sys
+import numpy as np
 
 
-def main():
+def main(layerConf="2,1", noStupid=False):
+    # example: "2,3,1"
+    if layerConf == None:
+        layerConf="2,1"
+    layerConf = map(int, layerConf.split(','))
     data = MNISTSeven("../data/mnist_seven.csv", 3000, 1000, 1000)
     myStupidClassifier = StupidRecognizer(data.trainingSet,
                                           data.validationSet,
@@ -18,17 +24,23 @@ def main():
                                         data.testSet,
                                         learningRate=0.005,
                                         epochs=30)
+    #we cant use values for params and then have layer be dynamic
+    learningRate=0.005
+    epochs=30
+    layerConfig = layerConf
     logRes = LogisticRegression(data.trainingSet,
                                 data.validationSet,
-                                data.testSet)
-
+                                data.testSet,
+                                learningRate,
+                                epochs, layerConfig)
+    print(str(noStupid))
     # Train the classifiers
     print("=========================")
     print("Training..")
-
-    print("\nStupid Classifier has been training..")
-    myStupidClassifier.train()
-    print("Done..")
+    if not noStupid:
+        print("\nStupid Classifier has been training..")
+        myStupidClassifier.train()
+        print("Done..")
 
     #print("\nPerceptron has been training..")
     #myPerceptronClassifier.train()
@@ -40,7 +52,8 @@ def main():
 
     # Do the recognizer
     # Explicitly specify the test set to be evaluated
-    stupidPred = myStupidClassifier.evaluate()
+    if not noStupid:
+        stupidPred = myStupidClassifier.evaluate()
     logPred = logRes.evaluate()
     #perceptronPred = myPerceptronClassifier.evaluate()
 
@@ -48,9 +61,10 @@ def main():
     print("=========================")
     evaluator = Evaluator()
 
-    print("Result of the stupid recognizer:")
+    if not noStupid:
+        print("Result of the stupid recognizer:")
     # evaluator.printComparison(data.testSet, stupidPred)
-    evaluator.printAccuracy(data.testSet, stupidPred)
+        evaluator.printAccuracy(data.testSet, stupidPred)
 
     #print("\nResult of the Perceptron recognizer:")
     # evaluator.printComparison(data.testSet, perceptronPred)
@@ -61,4 +75,14 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    noStupid = False
+    layerConf=None
+    if len(sys.argv) > 1:
+        layerConf = sys.argv[1]
+    for arg in sys.argv:
+        if arg == "-ns":
+            noStupid = True
+
+    #print 'Number of arguments:', len(sys.argv), 'arguments.'
+    #print 'Argument List:', str(sys.argv)
+    main(layerConf, noStupid)

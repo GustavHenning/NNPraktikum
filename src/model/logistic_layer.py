@@ -95,13 +95,15 @@ class LogisticLayer():
         self.output = self.activation(np.dot(self.weights, np.array(self.input)))
         return self.output
 
-    def computeDerivative(self, label, nextDerivatives, nextWeights):
+    def computeDerivative(self, label, loss, nextDerivatives, nextWeights):
         """
         Compute the derivatives (back)
 
         Parameters
         ----------
         label:
+            used by classification layers.
+        loss:
             used by classification layers.
         nextDerivatives: ndarray
             a numpy array containing the derivatives from next layer
@@ -118,7 +120,8 @@ class LogisticLayer():
         #    " *  [l: " + str(np.array(label)) +
         #    " - y: " + str(self.output.shape) + " ]")
         #    print(" = " + str(np.multiply(self.activationPrime(self.output), np.array(label - self.output)).shape))
-            self.delta = np.multiply(self.activationPrime(self.output), np.array(label - self.output))
+        # label - self.output
+            self.delta = np.multiply(self.activationPrime(self.output), loss.calculateError(np.array(label), np.array(self.output)))
         else:
         #    print("Unimplemented for multiple layers")
         #    print("nD: " + str(nextDerivatives.shape) +
@@ -132,4 +135,6 @@ class LogisticLayer():
         Update the weights of the layer
         """
         #print("w: " + str(self.weights.shape) + " = d: " + str(self.delta.shape) + " * i: " + str(self.input.shape))
+        #print(np.self.weights)
+        #print(str(self.delta[:,np.newaxis]))
         self.weights += learningRate * self.input * self.delta[:,np.newaxis]
