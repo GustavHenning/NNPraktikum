@@ -48,7 +48,7 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, learningRate=0.01, epochs=10, layerConf=[2,1]):
+    def __init__(self, train, valid, test, layerConf=[2,1], learningRate=0.001, epochs=100):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -113,8 +113,9 @@ class LogisticRegression(Classifier):
             logging.info("LogRes using [%s] with %i epochs", loss.errorString, self.epochs)
         learned = False
         epoch = 1
+        delta = 0
         CLASSIFIER_LAYER = 0 # classifier layer is the first in the reverse list
-        trainingCost = np.zeros(self.epochs)
+        trainingCost = []
         while not learned:
             totalError = 0
             for input, label in zip(self.trainingSet.input, self.trainingSet.label):
@@ -145,13 +146,15 @@ class LogisticRegression(Classifier):
                 for layer in self.layers:
                     layer.updateWeights(self.learningRate)
 
-            trainingCost[epoch-1] = totalError
-
+            trainingCost.append(totalError)
+            delta = totalError if delta == 0 else abs(delta - totalError)
             if verbose:
-                logging.info("Epoch: %i; Error: %f", epoch, totalError)
+                logging.info("Epoch: %i; Error: %f; ΔE: %f", epoch, totalError, delta)
+
 
             if epoch >= self.epochs:
                 learned = True
+
             epoch = epoch + 1
 
         # 'python-tk package not found?' => apt-get install python-tk

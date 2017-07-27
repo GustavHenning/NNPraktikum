@@ -25,14 +25,11 @@ def main(layerConf="2,1", noStupid=False):
                                         learningRate=0.005,
                                         epochs=30)
     #we cant use values for params and then have layer be dynamic
-    learningRate=0.001
-    epochs=10
     layerConfig = layerConf
     logRes = LogisticRegression(data.trainingSet,
                                 data.validationSet,
                                 data.testSet,
-                                learningRate,
-                                epochs, layerConfig)
+                                layerConfig)
     print(str(noStupid))
     # Train the classifiers
     print("=========================")

@@ -121,7 +121,7 @@ class LogisticLayer():
         #    " - y: " + str(self.output.shape) + " ]")
         #    print(" = " + str(np.multiply(self.activationPrime(self.output), np.array(label - self.output)).shape))
         # label - self.output
-            self.delta = np.multiply(self.activationPrime(self.output), loss.calculateError(np.array(label), np.array(self.output)))
+            self.delta = np.multiply(self.activationPrime(self.output), np.subtract(np.array(label), np.array(self.output)))
         else:
         #    print("Unimplemented for multiple layers")
         #    print("nD: " + str(nextDerivatives.shape) +
@@ -138,7 +138,7 @@ class LogisticLayer():
         #print(np.self.weights)
         #print(str(self.delta[:,np.newaxis]))
         #print(str(self.shape) + " weight sum: " + str(np.sum(learningRate * np.multiply(self.input, self.delta[:,np.newaxis]))))
-        result = np.array(np.multiply(self.delta[:,np.newaxis], sum(self.input)))
+        result = np.array(np.multiply(self.delta[:,np.newaxis], self.input))
         #print(str(self.weights.shape) + " shapes " + str(result.shape))
         prev=self.weights
         #print(prev)
