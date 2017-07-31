@@ -4,9 +4,12 @@ import sys
 import logging
 
 import numpy as np
+from random import shuffle
 
 from util.activation_functions import Activation
 from model.classifier import Classifier
+from logistic_layer import LogisticLayer
+
 from util.loss_functions import DifferentError
 from util.loss_functions import AbsoluteError
 from util.loss_functions import BinaryCrossEntropyError
@@ -14,7 +17,9 @@ from util.loss_functions import CrossEntropyError
 from util.loss_functions import SumSquaredError
 from util.loss_functions import MeanSquaredError
 
-from scipy.misc import derivative
+# plotting libaries
+import pdb
+import matplotlib.pyplot as plt
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
@@ -43,7 +48,7 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, learningRate=0.01, epochs=50):
+    def __init__(self, train, valid, test, learningRate=1e-3, epochs=30):
 
         self.learningRate = learningRate
         self.epochs = epochs
@@ -52,14 +57,12 @@ class LogisticRegression(Classifier):
         self.validationSet = valid
         self.testSet = test
 
-        # Initialize the weight vector with small values
-        self.weight = 0.01*np.random.randn(self.trainingSet.input.shape[1])
+        # TODO multilayer perceptron
+        nIn, nOut = self.trainingSet.input.shape[1], 1
+        self.layer = LogisticLayer(nIn, nOut, weights=None, activation="sigmoid", isClassifierLayer=True)
 
     def train(self, verbose=True):
-        """Train the Logistic Regression.
-
-        Parameters
-        ----------
+        """
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
@@ -73,65 +76,74 @@ class LogisticRegression(Classifier):
         # use loss to choose error function
         # ----------------------------------
         loss = DE
-        GRADIENT_LENGTH_THRESHOLD = 5
-        epoch = 1
-        while(epoch <= self.epochs):
-            gradient = np.zeros(len(self.weight))
-            sumE = 0
 
-            input = self.trainingSet.input
-            output = [(self.fire(inp)) for inp in input]
-            target = self.trainingSet.label
+        learned = False
+        it = 0
+        totE = 0        # total error
+        errHist = []    # error history
 
-            # here we pass two arrays of all targets and outputs
-            # and receive all errors of all 3000 images.
-            error = loss.calculateError(np.array(target), np.array(output))
+        # Instead of all labels in one array, we make a matrix of [1xL] where L is the number of labels
+        labels = np.matrix(np.column_stack((self.trainingSet.label,)))
+        # add bias (column of ones)
+        inputs = np.matrix(np.append(np.ones((self.trainingSet.input.shape[0], 1)), self.trainingSet.input, axis=1))
 
-            for i in range(error.size-1):
-                #print(error[i])
-                gradient -= np.multiply(error[i], input[i])
-            sumE += abs(sum(error))
+        while not learned:
+            # shuffle the data in a convenient way
+            data = zip(inputs, labels)
+            shuffle(data)
 
-            self.updateWeights(gradient)
+            for input, label in data:
+                # forward pass
+                output = self._forwardPass(input)
+                # compute the error
+                totE += abs(loss.calculateError(label, output))
+                # backward pass
+                self._backwardPass(label, output)
+                # update weights
+                self._updateWeights()
 
-            lenGrad = np.sqrt(np.sum(np.square(gradient)))
+            # update local variables
+            errHist.append(totE)
+            it += 1
+
+            # compute error difference for logging purposes
+            deltaE = 0 if it < 2 else abs(errHist[-1] - errHist[-2])
 
             if verbose:
-                logging.info("Epoch: %i; Error: %f, Grad Length: %f", epoch, sumE, lenGrad)
-            #print(str(sumE) + " " + str(lenGrad))
-            if sumE <= 0.0 and lenGrad < GRADIENT_LENGTH_THRESHOLD:
-                break
-            epoch = epoch + 1
+                logging.info("Epoch: %i; Error: %i; ΔE: %f", it, totE, deltaE)
 
-        pass
+            # convergence criteria
+            learned = (totE == 0 or it >= self.epochs)
+            totE = 0
 
+        self._plotResults(errHist)
+
+    def _forwardPass(self, input):
+        return self.layer.forward(input)
+
+    def _backwardPass(self, label, output):
+        self.layer.computeDerivative(-(label-output), np.matrix([[1]]))
+
+    def _updateWeights(self):
+        # TODO implement other policies for learningRates
+        self.layer.updateWeights(self.learningRate)
+
+        # classify as single instance
     def classify(self, testInstance):
-        """Classify a single instance.
-
-        Parameters
-        ----------
+        """
         testInstance : list of floats
 
-        Returns
-        -------
-        bool :
-            True if the testInstance is recognized as a 7, False otherwise.
+        Returns: True if the testInstance is recognized as a 7, False otherwise.
         """
-        return self.fire(testInstance) > 0.5
-        pass
+        return self.layer.forward(np.array([np.concatenate((np.array([1]),testInstance))]))[0] > 0.5
 
+        # evaluate the whole dataset
     def evaluate(self, test=None):
-        """Evaluate a whole dataset.
-
-        Parameters
-        ----------
+        """
         test : the dataset to be classified
         if no test data, the test set associated to the classifier will be used
 
-        Returns
-        -------
-        List:
-            List of classified decisions for the dataset's entries.
+        Returns: List of classified decisions for the dataset's entries.
         """
         if test is None:
             test = self.testSet.input
@@ -139,13 +151,16 @@ class LogisticRegression(Classifier):
         # set.
         return list(map(self.classify, test))
 
-        # maybe w - self.learningRate? * g
-    def updateWeights(self, grad):
-        #self.weight = [(w - self.learningRate * g) for w, g in zip(self.weight, grad)]
-        self.weight += - self.learningRate * grad
-        pass
+    def _plotResults(self, errorHistory):
+        # 'python-tk package not found?' => apt-get install python-tk
 
-    def fire(self, input):
-        # Look at how we change the activation function here!!!!
-        # Not Activation.sign as in the perceptron, but sigmoid
-        return Activation.sigmoid(np.dot(np.array(input), self.weight))
+        # Make errorHistory a list of values instead of matrices
+        errorHistory = [e.item(0) for e in errorHistory]
+        plt.plot(errorHistory, '-b',  label='Error cost history over training set')
+        plt.ylabel('Error cost')
+        plt.xlabel('Epoch')
+        plt.legend(loc='upper right')
+        plt.grid(True)
+        # enable this to show graph
+        plt.show()
+        pass

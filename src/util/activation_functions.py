@@ -20,13 +20,13 @@ class Activation:
     @staticmethod
     def sigmoid(netOutput):
         # 1 / (1 + e^x)
-        return divide(1, (1 + exp(-netOutput)))
+        return divide(1.0, (1.0 + exp(-1.0*netOutput)))
 
     @staticmethod
     def sigmoidPrime(netOutput):
         # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
         sig = Activation.sigmoid(netOutput)
-        return sig * (1 - sig)
+        return sig * (1.0 - sig)
 
 
     @staticmethod
@@ -37,7 +37,7 @@ class Activation:
     @staticmethod
     def tanhPrime(netOutput):
         # source: https://en.wikipedia.org/wiki/Activation_function#Comparison_of_activation_functions
-        tan = Acitvation.tanh(netOutput)
+        tan = Activation.tanh(netOutput)
         return 1 - tan**2
 
     @staticmethod

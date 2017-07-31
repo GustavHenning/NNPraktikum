@@ -4,10 +4,9 @@ import time
 import numpy as np
 
 from util.activation_functions import Activation
-from model.layer import Layer
 
 
-class LogisticLayer(Layer):
+class LogisticLayer():
     """
     A layer of perceptrons acting as the output layer
 
@@ -47,6 +46,7 @@ class LogisticLayer(Layer):
         # Notice the functional programming paradigms of Python + Numpy
         self.activationString = activation
         self.activation = Activation.getActivation(self.activationString)
+        self.activationPrime = Activation.getDerivative(self.activationString)
 
         self.nIn = nIn
         self.nOut = nOut
@@ -56,6 +56,8 @@ class LogisticLayer(Layer):
         self.input[0] = 1
         self.output = np.ndarray((nOut, 1))
         self.delta = np.zeros((nOut, 1))
+        self.output = None
+        self.a = None
 
         # You can have better initialization here
         if weights is None:
@@ -70,42 +72,28 @@ class LogisticLayer(Layer):
         self.size = self.nOut
         self.shape = self.weights.shape
 
+        # Compute forward step over the input using its weights
     def forward(self, input):
         """
-        Compute forward step over the input using its weights
-
-        Parameters
-        ----------
         input : ndarray
             a numpy array (1,nIn + 1) containing the input of the layer
-
-        Returns
-        -------
-        ndarray :
-            a numpy array (1,nOut) containing the output of the layer
         """
-        pass
+        self.input = input
+        self.output = np.dot(self.weights, input.T)
+        self.a = self.activation(self.output)
+        return self.a
 
     def computeDerivative(self, nextDerivatives, nextWeights):
         """
-        Compute the derivatives (back)
-
-        Parameters
-        ----------
         nextDerivatives: ndarray
             a numpy array containing the derivatives from next layer
         nextWeights : ndarray
             a numpy array containing the weights from next layer
+        """
+        self.delta = np.multiply(np.dot(nextDerivatives, nextWeights.T), self.activationPrime(self.output))
+        self.derivatives = np.dot(self.delta.T, self.input)
+        return self.derivatives
 
-        Returns
-        -------
-        ndarray :
-            a numpy array containing the partial derivatives on this layer
-        """
-        pass
-
-    def updateWeights(self):
-        """
-        Update the weights of the layer
-        """
-        pass
+    def updateWeights(self, learningRate):
+        self.weights -= learningRate * self.derivatives
+        return self.weights
