@@ -21,8 +21,8 @@ class Activation:
     @staticmethod
     def sigmoid(netOutput):
         # 1 / (1 + e^x)
-        # prevent overflows 
-        netOutput = clip(netOutput, -500, 500)
+        # prevent overflows
+        netOutput = clip(netOutput, -5000, 5000)
         return divide(1, (1 + exp(-netOutput)))
 
     @staticmethod

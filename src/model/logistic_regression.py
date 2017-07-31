@@ -48,8 +48,9 @@ class LogisticRegression(Classifier):
     epochs : positive int
     """
 
-    def __init__(self, train, valid, test, layerConf=[2,1], learningRate=0.001, epochs=100):
+    def __init__(self, train, valid, test, layerConf=[2,1], learningRate=1e-3, epochs=100):
 
+        np.random.seed(1)
         self.learningRate = learningRate
         self.epochs = epochs
 
@@ -67,15 +68,13 @@ class LogisticRegression(Classifier):
             # Any other layer, size of input equal to that of the previous output.
             sizeIn = layerConf[ind - 1] if ind != 0 else self.trainingSet.input.shape[1]
             sizeOut = val
-            activeStrings = ['sigmoid', 'softmax', 'tanh', #'linear'
-            ];
-            randomActive = activeStrings[np.random.randint(0, len(activeStrings))]
-            # "sigmoid"
-            actives = "sigmoid" if ind == len(layerConf) - 1 else randomActive
+            actives = "tanh" #if ind == len(layerConf) - 1 else "sigmoid"
             # in, out, isInput, acitvationFunction, isClassifier
             #print(str(sizeIn) + " " + str(sizeOut))
             self.layers.append(LogisticLayer(sizeIn, sizeOut, ind == 0, actives))
             logging.info("Layer %i, size [%i → %i], %s", ind, sizeIn, sizeOut, actives)
+        #self.layers.append(LogisticLayer(layerConf[-1], 1, ind == 0, actives))
+        #logging.info("Layer %i, size [%i → %i], %s", ind + 1, layerConf[-1], 1, actives)
 
         # set the last layer to be a classifier
         self.layers[-1].isClassifierLayer = True
@@ -106,7 +105,7 @@ class LogisticRegression(Classifier):
         # ----------------------------------
         # use loss to choose error function
         # ----------------------------------
-        loss = DE
+        loss = DEE
         loss.errorString()
         # ----------------------------------
         if verbose:
@@ -114,45 +113,70 @@ class LogisticRegression(Classifier):
         learned = False
         epoch = 1
         delta = 0
-        CLASSIFIER_LAYER = 0 # classifier layer is the first in the reverse list
+        REVERSED_CLASSIFIER_LAYER = 0 # classifier layer is the first in the reverse list
         trainingCost = []
+        weightRatio = []
         while not learned:
             totalError = 0
+            i = 0
             for input, label in zip(self.trainingSet.input, self.trainingSet.label):
 
                 ##
                 ## Feed forward step - let the layers evaluate input in a cascading manner
+                ## The second parameter is used to apply dropout during training.
                 ##
-                output = self.forward(input)
+                output = self.forward(input, True)
                 #totalError -= loss.calculateError(label, output)
 
                 ##
                 ## Backpropagation step - From back to front, calculate nextDerivates
                 ## and pass the weights to the next layer
                 ##
+                layerStats = []
+                error = loss.calculateError(np.array(label), self.layers[-1].output)
+                #error = (np.array(label) - np.array(self.layers[-1].output))
+
                 for ind, layer in enumerate(reversed(self.layers)):
-                    if ind == CLASSIFIER_LAYER:
+                    #print(str(ind) + str(layer.shape))
+                    if ind == REVERSED_CLASSIFIER_LAYER:
                         # The classifier layer. NOTE: Probably needs specific arguments
                         # depending on the error function!
-                        totalError -= layer.computeDerivative(label, loss, None, None)
+                        layer.computeDerivative(error, None, None)
+                        totalError -= error
                     else:
                         # hidden layer: propagate backwards with the derivates and the weights
                         # The minus sign indicates going from right to left index-wise.
-                        layer.computeDerivative(None, None, self.layers[-ind].delta, self.layers[-ind].weights)
+                        #print(str(self.layers[-ind].weights.shape))
+                        layer.computeDerivative(None, self.layers[-ind].delta, self.layers[-ind].weights)
+
+                    layerStats.append("l: " + str(layer.shape) + " mean: " + '{0:.2f}'.format(np.average(layer.weights)) + " std: " + '{0:.2f}'.format(np.std(layer.weights)))
+                if verbose and epoch % 10 == 1 and i < 3:
+                    stats = ""
+                    for statsLayer in reversed(layerStats):
+                        stats += str(statsLayer) + " "
+                    logging.info("%s", stats)
 
                 ##
                 ## Update step
                 ##
-                for layer in self.layers:
-                    layer.updateWeights(self.learningRate)
+                ratios = []
+                for ind, layer in enumerate(self.layers):
+                    if ind != 0:
+                        layer.updateWeights(self.layers[ind - 1].output, self.learningRate)
+                        #ratios.append(layer.weightUpdateRatio)
+                ratios = np.array(ratios)
+                # should be numbers of 1e-3
+                # print(str(np.average(abs(ratios))))
+                i += 1
+            # stats about training cost
+            trainingCost.append(sum(abs(totalError)))
+            delta = trainingCost[-1] if epoch < 2 else abs(trainingCost[-1] - trainingCost[-2])
 
-            trainingCost.append(totalError)
-            delta = totalError if delta == 0 else abs(delta - totalError)
+            acc = self.evaluate()
+            acc = 1.0 - (1.0 * np.sum(acc) / len(acc))
             if verbose:
-                logging.info("Epoch: %i; Error: %f; ΔE: %f", epoch, totalError, delta)
-
-
-            if epoch >= self.epochs:
+                logging.info("Epoch: %i; Acc: %f; Error: %f; ΔE: %f", epoch, acc, sum(abs(totalError)), delta)
+            if epoch >= self.epochs or delta <= 1e-8:
                 learned = True
 
             epoch = epoch + 1
@@ -164,7 +188,7 @@ class LogisticRegression(Classifier):
         plt.legend(loc='upper right')
         plt.grid(True)
         # enable this to show graph
-        #plt.show()
+        plt.show()
         pass
 
     def classify(self, testInstance):
@@ -180,7 +204,8 @@ class LogisticRegression(Classifier):
             True if the testInstance is recognized as a 7, False otherwise.
         """
         temp = testInstance
-        return self.forward(temp) > 0.5
+        r = self.forward(temp)
+        return r[0] > 0.5 and np.argmax(r) == 0
         pass
 
     def evaluate(self, test=None):
@@ -203,8 +228,15 @@ class LogisticRegression(Classifier):
         return list(map(self.classify, test))
 
 
-    def forward(self, input):
+    def forward(self, input, training=False):
         output = input
         for layer in self.layers:
-            output = layer.forward(output)
+            if not training:
+                output = layer.forward(output)
+            else:
+                # perform dropout if not classification
+                output = layer.forward(output, layer.isClassifierLayer == False)
+
+
+
         return output

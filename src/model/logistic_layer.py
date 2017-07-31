@@ -2,6 +2,7 @@
 import time
 
 import numpy as np
+import random
 
 from util.activation_functions import Activation
 #from model.layer import Layer
@@ -52,19 +53,23 @@ class LogisticLayer():
         self.activation = Activation.getActivation(self.activationString)
         self.activationPrime = Activation.getDerivative(self.activationString)
 
+        self.isInputLayer = isInputLayer
         self.nIn = nIn
         self.nOut = nOut
 
         # Adding bias
         self.input = np.ndarray((nIn+1, 1))
-        self.input[0] = 1
+        self.input[0] = -1
         self.output = np.ndarray((nOut, 1))
         self.delta = np.zeros((nOut, 1))
-
         # You can have better initialization here
 
-        rns = np.random.RandomState(int(time.time()))
-        self.weights = rns.uniform(size=(nOut, nIn + (1 if isInputLayer else 0)))-0.5
+        self.weights = np.random.randn(nIn + (1 if isInputLayer else 0), nOut) / np.sqrt(nIn)
+        # velocity for momentum training
+        self.cache = np.zeros(self.weights.shape)
+        #print(str(self.weights.shape))
+        #rns = np.random.RandomState(int(time.time()))
+        #self.weights = rns.uniform(size=(nOut, nIn + (1 if isInputLayer else 0)))-0.5
         #print(str(self.weights.shape))
 
 
@@ -74,7 +79,8 @@ class LogisticLayer():
         self.size = self.nOut
         self.shape = self.weights.shape
 
-    def forward(self, input):
+    def forward(self, input, training=False):
+        self.dropout_rate = 0.5 # higher => less dropout
         """
         Compute forward step over the input using its weights
 
@@ -92,10 +98,15 @@ class LogisticLayer():
         # [x * w] => [S] => y
         #print("x: " + str(self.input.shape) + " * w:" + str(self.weights.shape) + " = ")
         #print(str(np.dot(self.weights, np.array(self.input)).shape))
-        self.output = self.activation(np.dot(self.weights, np.array(self.input)))
+
+        self.output = self.activation(np.dot(np.array(self.input), self.weights))
+        #if not self.isClassifierLayer:
+        #    if training:
+        #        self.dropout_layer = (np.random.rand(*self.output.shape) < self.dropout_rate) / self.dropout_rate # filter by rate
+        #        self.output *= self.dropout_rate # here we drop
         return self.output
 
-    def computeDerivative(self, label, loss, nextDerivatives, nextWeights):
+    def computeDerivative(self, error, nextDerivatives, nextWeights):
         """
         Compute the derivatives (back)
 
@@ -121,16 +132,16 @@ class LogisticLayer():
         #    " - y: " + str(self.output.shape) + " ]")
         #    print(" = " + str(np.multiply(self.activationPrime(self.output), np.array(label - self.output)).shape))
         # label - self.output
-            self.delta = np.multiply(self.activationPrime(self.output), np.subtract(np.array(label), np.array(self.output)))
+            self.delta = error * self.activationPrime(self.output)
         else:
-        #    print("Unimplemented for multiple layers")
-        #    print("nD: " + str(nextDerivatives.shape) +
-        #    "nW: " + str(nextWeights.shape) +
-        #    " * y^: " + str(self.activationPrime(self.output).shape))
-            self.delta = np.multiply(np.dot(nextDerivatives, nextWeights), self.activationPrime(self.output))
+            #print("nD: " + str(nextDerivatives.shape) +
+            #"nW: " + str(self.weights.T.shape) +
+            #" * y^: " + str(self.activationPrime(self.output).shape))
+            error = nextDerivatives.dot(nextWeights.T)
+            self.delta = error * self.activationPrime(self.output)
         return self.delta
 
-    def updateWeights(self, learningRate=0.01):
+    def updateWeights(self, prev_out, learningRate=0.01, mu=0.90):
         """
         Update the weights of the layer
         """
@@ -138,11 +149,29 @@ class LogisticLayer():
         #print(np.self.weights)
         #print(str(self.delta[:,np.newaxis]))
         #print(str(self.shape) + " weight sum: " + str(np.sum(learningRate * np.multiply(self.input, self.delta[:,np.newaxis]))))
-        result = np.array(np.multiply(self.delta[:,np.newaxis], self.input))
         #print(str(self.weights.shape) + " shapes " + str(result.shape))
-        prev=self.weights
+        #prev=self.weights
         #print(prev)
-        self.weights = np.add(self.weights, learningRate * result)
+
+        # We apply Adagrad to decay the learningRate
+        #
+        # ratio related
+        #param_scale = np.linalg.norm(self.weights.ravel())
+        # update related
+        #result = np.array(np.multiply(self.delta[:,np.newaxis], self.input))
+        #update = learningRate * result
+        # ratio related
+        #update_scale = np.linalg.norm(update.ravel())
+        #self.cache += result ** 2
+        # testing
+        #print(str(self.weights.shape) + " shapes " + str(prev.output.shape) + " shapes " + str(self.delta.shape) )
+        prev_out = prev_out.T[:,np.newaxis]
+        self.delta = self.delta[:,np.newaxis].T
+        #print(str(self.weights.shape) + " weights : output " + str(prev_out.shape) + " shapes " + str(self.delta.shape))
+
+        self.weights += prev_out.dot(self.delta)
+        #self.weights = np.add(self.weights, update / (np.sqrt(self.cache) + 1e-7))
+        #self.weightUpdateRatio = update_scale / param_scale
         #print("w sum " + str(np.sum(self.weights)))
         #print("p sum " + str(np.sum(prev)))
         #print(str(np.sum(prev)-np.sum(self.weights)))
